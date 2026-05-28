@@ -1,0 +1,123 @@
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css"
+  integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
+	crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"
+	integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
+	crossorigin=""></script>
+</head>
+<body>
+<div id="id_box"></div><!id_box>
+<div id="id_more">
+<input type="button" id="id_buttonnext" />
+</div><!id_more>
+
+<script>
+var aobj = {
+	"set_init":function(param){
+		var athis = this;
+		var aconfig = (athis.get_config({}));
+		var aparams;
+
+		athis.m_state = {};
+		athis.m_state["timestampstart"] = (new Date()).getTime();
+		athis.m_state["map"] = null;
+
+		const ahttpparams = new Proxy(new URLSearchParams(window.location.search), {
+			get: (aSearchParams, aprop) => aSearchParams.get(aprop),
+		});
+		aparams = ahttpparams;
+		athis.m_state["httpparams"] = aparams;
+
+		var adefault = JSON.parse(athis.m_state["httpparams"]["default"]);
+		var alink = 'https://nominatim.openstreetmap.org/reverse';
+		var acontentdata = {
+			'lat':adefault['lat'],
+			'lon':adefault['lon'],
+			'addressdetails':1,
+			'namedetails':0,
+			'accept-language':"en-US",
+			'format':"geocodejson",
+			'zoom':18,
+			'email':"membership@osmfoundation.org",
+		};
+
+		jQuery.ajax({
+			'url':alink,
+			'method':'GET',
+			'contentType':'json',
+			'data':acontentdata,
+			'dataType':'json',
+			'async':true,
+		}).done(function(adata){
+			athis.m_state.geocoding = adata['features'][0]['properties']['geocoding'];
+		});
+
+		jQuery("#"+aconfig["boxid"]).css("height", aconfig["boxheight"]+'px');
+
+		jQuery("#"+aconfig["nextid"]).on("click",function(aevent){
+			var atemp;
+			atemp = "panorama.html?";
+			atemp += "default="+encodeURIComponent(JSON.stringify(adefault))+"&";
+			window.open(atemp);
+		}).val("360°");
+	},
+	"set_start":function(param){
+		var athis = this;
+		var aconfig = (athis.get_config({}));
+		var amapmarker;
+		var amapmarkers;
+		var aparams;
+
+		aparams = athis.m_state.httpparams;
+
+		var adefault = JSON.parse(athis.m_state["httpparams"]["default"]);
+
+		athis.m_state.map = L.map(aconfig["boxid"]).setView(
+			[adefault["lat"],adefault["lon"]],
+			adefault["zoom"]
+		);
+		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+			attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+		}).addTo(athis.m_state.map);
+
+		amapmarker = L.marker([adefault["lat"], adefault["lon"]]).addTo(athis.m_state.map)
+		    .bindPopup('<br/>Usage e.g. ?default={lat:-0.1,lon:0.1,zoom:18,}&amp;')
+		;
+		amapmarkers = new L.FeatureGroup();
+		amapmarkers.clearLayers();
+		amapmarkers.addLayer(amapmarker);
+		athis.m_state.map.addLayer(amapmarkers);
+		athis.m_state.map.on('click',async function(aevent){
+			var atemp;
+			atemp = {
+				'lat':aevent.latlng.lat,
+				'lon':aevent.latlng.wrap().lng,
+				'zoom':athis.m_state.map.getZoom(),
+			};
+			athis.m_state.maplastclicked = atemp;
+		});
+
+	},
+	"m_state":null,
+	"get_config":function(param){
+		var athis = this;
+		var a = {
+			"boxheight":320,
+			"boxid":"id_box",
+			"nextid":"id_buttonnext",
+		};
+		return a;
+	},
+};
+jQuery(document).ready(function(){
+	aobj.set_init({});
+	aobj.set_start({});
+});
+</script>
+</body>
+</html>
