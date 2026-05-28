@@ -1,0 +1,172 @@
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pannellum panorama</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.css"/>
+<script type="text/javascript" src="https://cdn.jsdelivr.net/npm/pannellum@2.5.6/build/pannellum.js"></script>
+<script type="text/javascript" src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+</head>
+<body>
+<div id="id_box"></div><!id_box>
+<canvas id="id_canvas"></canvas>
+<div id="id_more">
+<input type="button" id="id_buttonnext" />
+</div><!id_more>
+
+<script>
+var aobj = {
+	"set_init":function(param){
+		var athis = this;
+		var aconfig = (athis.get_config({}));
+		var aparams;
+
+		athis.m_state = {};
+		athis.m_state["timestampstart"] = (new Date()).getTime();
+
+		const ahttpparams = new Proxy(new URLSearchParams(window.location.search), {
+			get: (aSearchParams, aprop) => aSearchParams.get(aprop),
+		});
+		aparams = (ahttpparams);
+		athis.m_state["httpparams"] = aparams;
+
+		var adefault = JSON.parse(athis.m_state["httpparams"]["default"]);
+
+		jQuery("#"+aconfig["boxid"]).css("height", aconfig["boxheight"]+'px');
+		jQuery("#"+aconfig["boxid"]).css("width", aconfig["boxwidth"]+'px');
+
+		jQuery("#"+aconfig["nextid"]).on("click",function(aevent){
+			var atemp;
+			atemp = "map.html?";
+			atemp += "default="+encodeURIComponent(JSON.stringify(adefault))+"&";
+			window.open(atemp);
+		}).val("Map");
+	},
+	"set_start":function(param){
+		var athis = this;
+		var aconfig = (athis.get_config({}));
+		var apikey;
+		apikey = aconfig["apikey"];
+
+		(g=>{var h,a,k,p="The Google Maps JavaScript API",c="google",l="importLibrary",q="__ib__",m=document,b=window;b=b[c]||(b[c]={});var d=b.maps||(b.maps={}),r=new Set,e=new URLSearchParams,u=()=>h||(h=new Promise(async(f,n)=>{await (a=m.createElement("script"));e.set("libraries",[...r]+"");for(k in g)e.set(k.replace(/[A-Z]/g,t=>"_"+t[0].toLowerCase()),g[k]);e.set("callback",c+".maps."+q);a.src=`https://maps.${c}apis.com/maps/api/js?`+e;d[q]=f;a.onerror=()=>h=n(Error(p+" could not load."));a.nonce=m.querySelector("script[nonce]")?.nonce||"";m.head.append(a)}));d[l]?console.warn(p+" only loads once. Ignoring:",g):d[l]=(f,...n)=>r.add(f)&&u().then(()=>d[l](f,...n))})({
+			key: apikey,//"YOUR_API_KEY",
+			v: "weekly",
+// Use the 'v' parameter to indicate the version to use (weekly, beta, alpha, etc.).
+// Add other bootstrap parameters as needed, using camel case.
+		});
+
+		(async (param)=>{
+
+			var aparams;
+			var adefault;
+
+			aparams = athis.m_state["httpparams"];
+			adefault = JSON.parse(aparams["default"]);
+
+			let alat = adefault.lat;
+			let alon = adefault.lon;
+
+			var tilewidth = aconfig["tilewidth"];
+			var tileheight = aconfig["tileheight"];
+
+			const { StreetViewService } = await google.maps.importLibrary("streetView");
+			const aservice = new StreetViewService();
+
+			const myLocation = { 
+				lat: parseFloat(alat),
+				lng: parseFloat(alon),
+			};
+
+			aservice.getPanoramaByLocation(myLocation, 50, function(adata, astatus) {
+				if (astatus === google.maps.StreetViewStatus.OK) {
+					try{
+						var apanoid = adata.location.pano;
+						athis.set_image_stitch({
+							"panoid":apanoid,"lat":alat,"lon":alon,
+							"tilewidth":tilewidth,"tileheight":tileheight,
+							"canvasid":aconfig["canvasid"],
+							"zoom":1,
+						});
+					}
+					catch(aexception){
+						console.error(aexception);
+					};
+				}
+			});
+
+		})({});
+
+	},
+	"m_state":null,
+	"get_config":function(param){
+		var athis = this;
+		var a = {
+			"boxheight":320,
+			"boxwidth":320,
+			"boxid":"id_box",
+			"nextid":"id_buttonnext",
+			"canvasid":"id_canvas",
+			"tileheight":512,
+			"tilewidth":512,
+      "apikey":"", // api key for google map streetview
+		};
+		return a;
+	},
+	"set_image_stitch":function(param){
+		var athis = this;
+		var aconfig = athis.get_config({});
+		var apanoid = param["panoid"];
+		var azoom = param["zoom"];
+		var awidth = (Math.pow(2,azoom)-1);
+		var aheight = ((Math.pow(2,azoom)*0.5)-1);
+
+		var acanvas = document.getElementById(param["canvasid"]);
+		var acontext = acanvas.getContext("2d");
+		var aid;
+
+		jQuery("#"+param["canvasid"]).hide();
+		acanvas.width = param["tilewidth"]*(awidth+1);
+		acanvas.height = param["tileheight"]*(aheight+1);
+
+		for(var y=0;y<=aheight;y++){
+			for(var x=0;x<=awidth;x++){
+				(function(aparam){
+					var aimage = new Image();
+
+					var aurl;
+
+					aurl = "https://streetviewpixels-pa.googleapis.com/v1/tile?";
+					aurl += "&cb_client=apiv3";
+					aurl += "&panoid="+encodeURIComponent(aparam["panoid"]);
+					aurl += "&output=tile";
+					aurl += "&x="+encodeURIComponent(aparam["x"]);
+					aurl += "&y="+encodeURIComponent(aparam["y"]);
+					aurl += "&zoom="+encodeURIComponent(aparam["zoom"]);
+					aurl += "&nbt=1&fover=2";
+
+					aimage.src = aurl;
+					aimage.crossOrigin='anonymous';
+					aimage.onload = function(){
+						var athis2 = this;
+						acontext.drawImage(athis2,(aparam["x"]*param["tilewidth"]),(aparam["y"]*param["tileheight"]));
+						aid = aconfig["boxid"];
+						jQuery("#"+aid).empty();
+						pannellum.viewer(""+aid, {
+							"type": "equirectangular",
+							"panorama": ""+acanvas.toDataURL(),
+							"autoLoad": true,
+							"autoRotate": -20,
+						});
+					};
+				})({"x":x,"y":y,"zoom":azoom,"panoid":apanoid,"tilewidth":param["tilewidth"],"tileheight":param["tileheight"],});
+			}
+		}
+	},
+};
+jQuery(document).ready(function(){
+	aobj.set_init({});
+	aobj.set_start({});
+});
+</script>
+</body>
+</html>
