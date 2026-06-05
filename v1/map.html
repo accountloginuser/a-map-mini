@@ -4,7 +4,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.0/jquery.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.4.0/dist/leaflet.css"
-  integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
+	integrity="sha512-puBpdR0798OZvTTbP4A8Ix/l+A4dHDD0DGqYW6RQ+9jxkRFclaxxQb/SJAWZfWAkuyeQUytO7+7N4QKrDh+drA=="
 	crossorigin=""/>
 <script src="https://unpkg.com/leaflet@1.4.0/dist/leaflet.js"
 	integrity="sha512-QVftwZFqvtRNi0ZyCtsznlKSWOStnDORoefr1enyq5mVL4tmKB3S/EnC3rRJcxCPavG10IcrVGSmPh6Qw5lwrg=="
@@ -86,7 +86,7 @@ var aobj = {
 		}).addTo(athis.m_state.map);
 
 		amapmarker = L.marker([adefault["lat"], adefault["lon"]]).addTo(athis.m_state.map)
-		    .bindPopup('<br/>Usage e.g. ?default={lat:-0.1,lon:0.1,zoom:18,}&amp;')
+		    .bindPopup('<br/>Usage e.g. ?default={"lat":-0.1,"lon":0.1,"zoom":18}&amp;')
 		;
 		amapmarkers = new L.FeatureGroup();
 		amapmarkers.clearLayers();
